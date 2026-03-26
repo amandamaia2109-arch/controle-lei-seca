@@ -10,11 +10,9 @@
       margin: 20px;
       background: #f5f7fa;
     }
-
     h1, h2 {
       color: #1f3c88;
     }
-
     input, select, textarea, button {
       padding: 10px;
       margin: 5px 0;
@@ -24,7 +22,6 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-
     button {
       background: #1f3c88;
       color: white;
@@ -34,11 +31,9 @@
       padding: 10px 16px;
       margin-right: 8px;
     }
-
     button:hover {
       background: #16306d;
     }
-
     .card {
       background: white;
       border-radius: 10px;
@@ -46,7 +41,6 @@
       margin-bottom: 20px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-
     .artigo {
       border: 1px solid #ddd;
       padding: 12px;
@@ -54,29 +48,32 @@
       border-radius: 8px;
       background: #fafafa;
     }
-
     .lido {
       background: #e8f5e9;
     }
-
     .topo {
       font-weight: bold;
       margin-bottom: 6px;
       color: #1f3c88;
     }
-
-    .acoes button {
-      margin-top: 8px;
-    }
-
     .texto {
       white-space: pre-wrap;
       line-height: 1.4;
     }
-
+    .acoes button {
+      margin-top: 8px;
+    }
     .resumo {
       margin-bottom: 10px;
       font-weight: bold;
+    }
+    .debug {
+      background: #fff8e1;
+      border: 1px solid #f0d98a;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -103,6 +100,8 @@
 
     <button onclick="extrair()">Extrair e salvar artigos</button>
     <button onclick="limparTudo()">Limpar todos os artigos</button>
+
+    <div id="debug" class="debug"></div>
   </div>
 
   <div class="card">
@@ -122,46 +121,61 @@
       let nomeLei = document.getElementById("nomeLei").value.trim();
       let materia = document.getElementById("materia").value;
       let texto = document.getElementById("textoLei").value.trim();
+      let debug = document.getElementById("debug");
 
       if (!nomeLei || !texto) {
         alert("Preencha o nome da lei e cole o texto.");
         return;
       }
 
-      texto = texto.replace(/\r/g, "");
+      // Normaliza o texto
+      texto = texto.replace(/\r/g, "\n");
+      texto = texto.replace(/\n+/g, "\n");
+      texto = texto.replace(/Art\.\s*/g, "\nArt. ");
+      texto = texto.replace(/Art\s+(\d+)/g, "\nArt. $1");
 
-      // quebra o texto toda vez que aparece um novo artigo
-      let partes = texto.split(/\n\s*(?=Art\.?\s*\d+[A-Za-zº°\-]*)/i);
+      // Quebra sempre que encontrar um novo Art.
+      let partes = texto.split("\nArt. ");
 
-      let encontrados = partes
-        .map(function(p) { return p.trim(); })
-        .filter(function(p) {
-          return /^Art\.?\s*\d+[A-Za-zº°\-]*/i.test(p);
-        });
+      let encontrados = [];
 
-      // plano B, caso a primeira quebra não funcione por causa da formatação
-      if (encontrados.length === 0) {
-        let regex = /Art\.?\s*\d+[A-Za-zº°\-]*[\s\S]*?(?=(\n\s*Art\.?\s*\d+[A-Za-zº°\-]*)|$)/gi;
-        encontrados = texto.match(regex) || [];
-        encontrados = encontrados.map(function(p) { return p.trim(); });
+      for (let i = 0; i < partes.length; i++) {
+        let parte = partes[i].trim();
+
+        if (!parte) continue;
+
+        // Recoloca o "Art. " que foi removido pelo split
+        if (!parte.startsWith("Art. ")) {
+          parte = "Art. " + parte;
+        }
+
+        // Só aceita se realmente começar com artigo numerado
+        if (/^Art\.\s*\d+/i.test(parte)) {
+          encontrados.push(parte);
+        }
       }
 
+      debug.innerHTML =
+        "Prévia de extração:\n" +
+        "Total encontrado: " + encontrados.length + "\n\n" +
+        (encontrados.slice(0, 3).join("\n\n---\n\n") || "Nada encontrado.");
+
       if (encontrados.length === 0) {
-        alert("Nenhum artigo encontrado. O texto colado veio fora do padrão.");
+        alert("Nenhum artigo encontrado.");
         return;
       }
 
       let baseId = Date.now();
 
-      encontrados.forEach(function(art, i) {
+      for (let i = 0; i < encontrados.length; i++) {
         artigos.push({
           id: baseId + i,
           lei: nomeLei,
           materia: materia,
-          artigo: art,
+          artigo: encontrados[i],
           lido: false
         });
-      });
+      }
 
       salvar();
       mostrar();
@@ -179,7 +193,6 @@
         }
         return a;
       });
-
       salvar();
       mostrar();
     }
@@ -188,7 +201,6 @@
       artigos = artigos.filter(function(a) {
         return a.id !== id;
       });
-
       salvar();
       mostrar();
     }
@@ -196,7 +208,6 @@
     function limparTudo() {
       let confirmar = confirm("Deseja apagar todos os artigos cadastrados?");
       if (!confirmar) return;
-
       artigos = [];
       salvar();
       mostrar();
@@ -237,13 +248,6 @@
 
         lista.appendChild(div);
       });
-    }
-
-    mostrar();
-  </script>
-
-</body>
-</html>
     }
 
     mostrar();
