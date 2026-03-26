@@ -136,7 +136,207 @@
   </div>
 
   <div id="abaLeis" class="aba ativa">
+    <div   <div id="abaCronograma" class="aba">
     <div class="card">
+      <h2>Cronograma</h2>
+      <div class="subtitulo">Aqui vamos misturar um pouco de cada matéria por dia.</div>
+
+      <label>Data inicial do cronograma</label>
+      <input id="dataInicial" type="date" onchange="salvarDataInicial()">
+
+      <label>Meta total de artigos por dia</label>
+      <input id="metaDia" type="number" value="20" onchange="salvarMetaDia()">
+
+      <div class="linha-botoes">
+        <button onclick="concluirDia()">Concluir dia</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Hoje</h2>
+      <div id="hoje"></div>
+    </div>
+
+    <div class="card">
+      <h2>🗓 Próximos dias</h2>
+      <div id="proximosDias"></div>
+    </div>
+  </div>
+
+  <div id="abaRevisao" class="aba">
+    <div class="card">
+      <h2>🔁 Revisão</h2>
+      <div id="revisao"></div>
+    </div>
+  </div>
+
+  <div id="abaArtigos" class="aba">
+    <div class="card">
+      <h2>Filtros</h2>
+      <div class="filtros">
+        <input id="busca" placeholder="Buscar por texto, lei ou artigo..." oninput="mostrar()">
+
+        <select id="filtroMateria" onchange="mostrar()">
+          <option value="">Todas as matérias</option>
+          <option>Direito Penal</option>
+          <option>Direito Civil</option>
+          <option>Processual Penal</option>
+          <option>Processual Civil</option>
+          <option>Constitucional</option>
+          <option>Administrativo</option>
+          <option>Processo Coletivo</option>
+        </select>
+
+        <select id="filtroBanca" onchange="mostrar()">
+          <option value="">Todas as bancas</option>
+          <option>FGV</option>
+          <option>Cebraspe</option>
+          <option>FCC</option>
+          <option>Vunesp</option>
+          <option>IBFC</option>
+          <option>Consulplan</option>
+          <option>AOCP</option>
+          <option>Outra</option>
+        </select>
+
+        <select id="filtroCaiu" onchange="mostrar()">
+          <option value="">Caiu ou não</option>
+          <option value="sim">Já caiu</option>
+          <option value="nao">Não caiu</option>
+        </select>
+
+        <select id="filtroIncidencia" onchange="mostrar()">
+          <option value="">Alta incidência?</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📚 Artigos</h2>
+      <div id="lista"></div>
+    </div>
+  </div>
+
+<script>
+  let artigos = JSON.parse(localStorage.getItem("artigosLeiSecaPro")) || [];
+  let progresso = JSON.parse(localStorage.getItem("progressoLeiSecaPro")) || 0;
+  let metaDia = JSON.parse(localStorage.getItem("metaDiaLeiSecaPro")) || 20;
+  let dataInicial = localStorage.getItem("dataInicialLeiSecaPro") || "";
+
+  function abrirAba(id, botao) {
+    document.querySelectorAll(".aba").forEach(function(aba) {
+      aba.classList.remove("ativa");
+    });
+
+    document.querySelectorAll(".tab-btn").forEach(function(btn) {
+      btn.classList.remove("ativa");
+    });
+
+    document.getElementById(id).classList.add("ativa");
+    botao.classList.add("ativa");
+  }
+
+  function salvar() {
+    localStorage.setItem("artigosLeiSecaPro", JSON.stringify(artigos));
+    localStorage.setItem("progressoLeiSecaPro", JSON.stringify(progresso));
+    localStorage.setItem("metaDiaLeiSecaPro", JSON.stringify(metaDia));
+    localStorage.setItem("dataInicialLeiSecaPro", dataInicial);
+  }
+
+  function hoje() {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  function somarDias(data, dias) {
+    let d = new Date(data + "T00:00:00");
+    d.setDate(d.getDate() + dias);
+    return d.toISOString().split("T")[0];
+  }
+
+  function diferencaDias(data1, data2) {
+    let d1 = new Date(data1 + "T00:00:00");
+    let d2 = new Date(data2 + "T00:00:00");
+    let ms = d2 - d1;
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  }
+
+  function salvarDataInicial() {
+    dataInicial = document.getElementById("dataInicial").value;
+    salvar();
+    mostrar();
+  }
+
+  function salvarMetaDia() {
+    metaDia = parseInt(document.getElementById("metaDia").value) || 20;
+    salvar();
+    mostrar();
+  }
+
+  function extrair() {
+    let nomeLei = document.getElementById("nomeLei").value.trim();
+    let materia = document.getElementById("materia").value;
+    let texto = document.getElementById("textoLei").value.trim();
+
+    if (!nomeLei || !texto) {
+      alert("Preencha o nome da lei e cole o texto.");
+      return;
+    }
+
+    texto = texto.replace(/\r/g, "\n");
+    texto = texto.replace(/\n+/g, "\n");
+    texto = texto.replace(/Art\.\s*/g, "\nArt. ");
+    texto = texto.replace(/Art\s+(\d+)/g, "\nArt. $1");
+
+    let partes = texto.split("\nArt. ");
+    let encontrados = [];
+
+    for (let i = 0; i < partes.length; i++) {
+      let parte = partes[i].trim();
+      if (!parte) continue;
+
+      if (!parte.startsWith("Art. ")) {
+        parte = "Art. " + parte;
+      }
+
+      if (/^Art\.\s*\d+/i.test(parte)) {
+        encontrados.push(parte);
+      }
+    }
+
+    if (encontrados.length === 0) {
+      alert("Nenhum artigo encontrado.");
+      return;
+    }
+
+    let baseId = Date.now();
+
+    for (let i = 0; i < encontrados.length; i++) {
+      artigos.push({
+        id: baseId + i,
+        lei: nomeLei,
+        materia: materia,
+        artigo: encontrados[i],
+        lido: false,
+        altaIncidencia: false,
+        caiuQuestao: false,
+        banca: "",
+        precisaRevisao: false,
+        dataRevisao: hoje(),
+        nivelRevisao: 0
+      });
+    }
+
+    salvar();
+    mostrar();
+
+    document.getElementById("nomeLei").value = "";
+    document.getElementById("textoLei").value = "";
+
+    alert("Artigos extraídos: " + encontrados.length);
+  }
+      
       <h2>Adicionar Lei</h2>
 
       <label>Nome da lei</label>
