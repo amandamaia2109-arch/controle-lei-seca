@@ -34,6 +34,9 @@
       padding: 10px 16px;
       margin-right: 8px;
     }
+    button:hover {
+      background: #16306d;
+    }
     .card {
       background: white;
       border-radius: 10px;
@@ -96,6 +99,13 @@
       margin-top: 10px;
       white-space: pre-wrap;
     }
+    .acoes button {
+      margin-top: 8px;
+    }
+    .resumo {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -128,7 +138,8 @@
   <div class="card">
     <h2>Filtros</h2>
     <div class="linha-filtros">
-      <input id="busca" placeholder="Buscar..." oninput="mostrar()">
+      <input id="busca" placeholder="Buscar por texto, lei ou artigo..." oninput="mostrar()">
+
       <select id="filtroMateria" onchange="mostrar()">
         <option value="">Todas as matérias</option>
         <option>Direito Penal</option>
@@ -139,6 +150,7 @@
         <option>Administrativo</option>
         <option>Processo Coletivo</option>
       </select>
+
       <select id="filtroBanca" onchange="mostrar()">
         <option value="">Todas as bancas</option>
         <option>FGV</option>
@@ -150,17 +162,24 @@
         <option>AOCP</option>
         <option>Outra</option>
       </select>
+
       <select id="filtroCaiu" onchange="mostrar()">
         <option value="">Caiu ou não</option>
         <option value="sim">Já caiu</option>
         <option value="nao">Não caiu</option>
+      </select>
+
+      <select id="filtroIncidencia" onchange="mostrar()">
+        <option value="">Alta incidência?</option>
+        <option value="sim">Sim</option>
+        <option value="nao">Não</option>
       </select>
     </div>
   </div>
 
   <div class="card">
     <h2>Artigos cadastrados</h2>
-    <div id="resumo"></div>
+    <div id="resumo" class="resumo"></div>
     <div id="lista"></div>
   </div>
 
@@ -268,13 +287,21 @@
     }
 
     function definirBanca(id) {
-      let novaBanca = prompt("Digite a banca:", "");
+      let artigo = artigos.find(function(a) { return a.id === id; });
+      if (!artigo) return;
+
+      let valorAtual = artigo.banca || "";
+      let novaBanca = prompt("Digite a banca:", valorAtual);
       if (novaBanca === null) return;
+
+      novaBanca = novaBanca.trim();
 
       artigos = artigos.map(function(a) {
         if (a.id === id) {
-          a.banca = novaBanca.trim();
-          if (a.banca) a.caiuQuestao = true;
+          a.banca = novaBanca;
+          if (novaBanca !== "") {
+            a.caiuQuestao = true;
+          }
         }
         return a;
       });
@@ -303,6 +330,7 @@
       let filtroMateria = document.getElementById("filtroMateria").value;
       let filtroBanca = document.getElementById("filtroBanca").value;
       let filtroCaiu = document.getElementById("filtroCaiu").value;
+      let filtroIncidencia = document.getElementById("filtroIncidencia").value;
 
       return artigos.filter(function(a) {
         let texto = (a.lei + " " + a.materia + " " + a.artigo + " " + (a.banca || "")).toLowerCase();
@@ -312,6 +340,8 @@
         if (filtroBanca && a.banca !== filtroBanca) return false;
         if (filtroCaiu === "sim" && !a.caiuQuestao) return false;
         if (filtroCaiu === "nao" && a.caiuQuestao) return false;
+        if (filtroIncidencia === "sim" && !a.altaIncidencia) return false;
+        if (filtroIncidencia === "nao" && a.altaIncidencia) return false;
 
         return true;
       });
@@ -329,7 +359,12 @@
       let caiu = artigos.filter(function(a) { return a.caiuQuestao; }).length;
       let alta = artigos.filter(function(a) { return a.altaIncidencia; }).length;
 
-      resumo.innerHTML = "Total: " + total + " | Lidos: " + lidos + " | Alta incidência: " + alta + " | Já caiu: " + caiu + " | Exibindo: " + filtrados.length;
+      resumo.innerHTML =
+        "Total: " + total +
+        " | Lidos: " + lidos +
+        " | Alta incidência: " + alta +
+        " | Já caiu: " + caiu +
+        " | Exibindo: " + filtrados.length;
 
       if (filtrados.length === 0) {
         lista.innerHTML = "<p>Nenhum artigo encontrado.</p>";
