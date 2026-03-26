@@ -2,179 +2,354 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Controle Lei Seca - ETAPA 5</title>
+<title>Controle Lei Seca PRO</title>
 
 <style>
-body { font-family: Arial; background:#f5f7fa; margin:20px; }
-.card { background:white; padding:15px; border-radius:10px; margin-bottom:20px; }
-.artigo { border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:8px; }
-.badge { padding:4px 8px; border-radius:6px; font-size:12px; margin-right:5px; }
+body {
+  font-family: Arial;
+  background:#f4f7fb;
+  margin:20px;
+}
+
+h1 { color:#1f3c88; }
+
+.card {
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+input, select, textarea, button {
+  width:100%;
+  padding:10px;
+  margin-top:5px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button {
+  background:#1f3c88;
+  color:white;
+  cursor:pointer;
+}
+
+.artigo {
+  border:1px solid #ddd;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+}
+
+.badge {
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:12px;
+  margin-right:5px;
+}
+
 .inc { background:#ffe5e5; }
 .caiu { background:#e7f7ea; }
-</style>
+.rev { background:#fff3cd; }
 
+</style>
 </head>
 
 <body>
 
-<h1>📚 Controle Lei Seca - ETAPA 5</h1>
+<h1>📚 Controle Lei Seca</h1>
 
 <div class="card">
 <h2>Adicionar Lei</h2>
 
-<input id="nomeLei" placeholder="Nome da lei"><br><br>
+<input id="nomeLei" placeholder="Nome da lei">
 
 <select id="materia">
-<option>Penal</option>
-<option>Civil</option>
-<option>Proc Penal</option>
-<option>Proc Civil</option>
+<option>Direito Penal</option>
+<option>Direito Civil</option>
+<option>Processual Penal</option>
+<option>Processual Civil</option>
 <option>Constitucional</option>
 <option>Administrativo</option>
-</select><br><br>
+<option>Processo Coletivo</option>
+</select>
 
-<textarea id="textoLei" rows="10"></textarea><br><br>
+<textarea id="textoLei" rows="8" placeholder="Cole a lei aqui"></textarea>
 
 <button onclick="extrair()">Extrair</button>
 </div>
 
 <div class="card">
-<h2>⚙️ Configurar Cronograma</h2>
-
-Artigos por dia:
-<input id="meta" type="number" value="20">
-
-<button onclick="gerarCronograma()">Gerar</button>
-
-</div>
-
-<div class="card">
-<h2>📅 Hoje estudar</h2>
+<h2>📅 Hoje</h2>
 <div id="hoje"></div>
+<button onclick="concluirDia()">Concluir dia</button>
 </div>
 
 <div class="card">
-<h2>📅 Revisar hoje</h2>
-<div id="revisar"></div>
+<h2>🔁 Revisão</h2>
+<div id="revisao"></div>
 </div>
 
 <div class="card">
-<h2>Todos os artigos</h2>
+<h2>📚 Artigos</h2>
 <div id="lista"></div>
 </div>
-
 <script>
+let artigos = JSON.parse(localStorage.getItem("artigosLeiSecaPro")) || [];
+let progresso = JSON.parse(localStorage.getItem("progressoLeiSecaPro")) || 0;
+let metaDia = 20;
 
-let artigos = JSON.parse(localStorage.getItem("artigos")) || [];
-let cronograma = JSON.parse(localStorage.getItem("cronograma")) || [];
-
-function salvar(){
-  localStorage.setItem("artigos", JSON.stringify(artigos));
-  localStorage.setItem("cronograma", JSON.stringify(cronograma));
+function salvar() {
+  localStorage.setItem("artigosLeiSecaPro", JSON.stringify(artigos));
+  localStorage.setItem("progressoLeiSecaPro", JSON.stringify(progresso));
 }
 
-function hoje(){
+function hoje() {
   return new Date().toISOString().split("T")[0];
 }
 
-function extrair(){
-  let nome = document.getElementById("nomeLei").value;
-  let materia = document.getElementById("materia").value;
-  let texto = document.getElementById("textoLei").value;
-
-  texto = texto.replace(/Art\./g,"\nArt.");
-  let partes = texto.split("\nArt.");
-
-  partes.forEach(p=>{
-    if(p.trim()){
-      artigos.push({
-        id:Date.now()+Math.random(),
-        lei:nome,
-        materia:materia,
-        artigo:"Art."+p.trim(),
-        revisao:hoje(),
-        nivel:0
-      });
-    }
-  });
-
-  salvar();
-  mostrar();
+function somarDias(data, dias) {
+  let d = new Date(data + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().split("T")[0];
 }
 
-function gerarCronograma(){
+function extrair() {
+  let nomeLei = document.getElementById("nomeLei").value.trim();
+  let materia = document.getElementById("materia").value;
+  let texto = document.getElementById("textoLei").value.trim();
 
-  let meta = parseInt(document.getElementById("meta").value);
+  if (!nomeLei || !texto) {
+    alert("Preencha o nome da lei e cole o texto.");
+    return;
+  }
 
-  let fila = [...artigos];
+  texto = texto.replace(/\r/g, "\n");
+  texto = texto.replace(/\n+/g, "\n");
+  texto = texto.replace(/Art\.\s*/g, "\nArt. ");
+  texto = texto.replace(/Art\s+(\d+)/g, "\nArt. $1");
 
-  cronograma = [];
+  let partes = texto.split("\nArt. ");
+  let encontrados = [];
 
-  let dia = 0;
+  for (let i = 0; i < partes.length; i++) {
+    let parte = partes[i].trim();
+    if (!parte) continue;
 
-  while(fila.length > 0){
-    let bloco = fila.splice(0, meta);
+    if (!parte.startsWith("Art. ")) {
+      parte = "Art. " + parte;
+    }
 
-    cronograma.push({
-      dia: dia,
-      artigos: bloco.map(a=>a.id)
+    if (/^Art\.\s*\d+/i.test(parte)) {
+      encontrados.push(parte);
+    }
+  }
+
+  if (encontrados.length === 0) {
+    alert("Nenhum artigo encontrado.");
+    return;
+  }
+
+  let baseId = Date.now();
+
+  for (let i = 0; i < encontrados.length; i++) {
+    artigos.push({
+      id: baseId + i,
+      lei: nomeLei,
+      materia: materia,
+      artigo: encontrados[i],
+      lido: false,
+      altaIncidencia: false,
+      caiuQuestao: false,
+      banca: "",
+      precisaRevisao: false,
+      dataRevisao: hoje(),
+      nivelRevisao: 0
     });
-
-    dia++;
   }
 
   salvar();
   mostrar();
+
+  document.getElementById("nomeLei").value = "";
+  document.getElementById("textoLei").value = "";
+
+  alert("Artigos extraídos: " + encontrados.length);
 }
-
-function mostrar(){
-
-  let hojeDiv = document.getElementById("hoje");
-  let revisarDiv = document.getElementById("revisar");
+function mostrar() {
   let lista = document.getElementById("lista");
+  let hojeDiv = document.getElementById("hoje");
+  let revisaoDiv = document.getElementById("revisao");
 
-  hojeDiv.innerHTML="";
-  revisarDiv.innerHTML="";
-  lista.innerHTML="";
+  lista.innerHTML = "";
+  hojeDiv.innerHTML = "";
+  revisaoDiv.innerHTML = "";
 
-  let diaAtual = cronograma[0];
+  let artigosHoje = artigos.slice(progresso, progresso + metaDia);
 
-  if(diaAtual){
-    diaAtual.artigos.forEach(id=>{
-      let a = artigos.find(x=>x.id===id);
+  if (artigosHoje.length === 0) {
+    hojeDiv.innerHTML = "<p>Nenhum artigo programado para hoje.</p>";
+  } else {
+    artigosHoje.forEach(function(a) {
       let div = document.createElement("div");
-      div.className="artigo";
-      div.innerText = a.materia + " - " + a.artigo;
+      div.className = "artigo";
+      div.innerHTML = "<b>" + a.materia + "</b><br>" + a.artigo.substring(0, 180) + "...";
       hojeDiv.appendChild(div);
     });
   }
 
-  artigos.forEach(a=>{
+  artigos.forEach(function(a) {
+    let badges = "";
 
-    let div = document.createElement("div");
-    div.className="artigo";
-
-    div.innerHTML = `
-      <b>${a.materia}</b><br>
-      ${a.artigo}
-    `;
-
-    lista.appendChild(div);
-
-    if(a.revisao <= hoje()){
-      let r = document.createElement("div");
-      r.className="artigo";
-      r.innerText = a.artigo;
-      revisarDiv.appendChild(r);
+    if (a.altaIncidencia) {
+      badges += '<span class="badge inc">Alta incidência</span>';
     }
 
+    if (a.caiuQuestao) {
+      badges += '<span class="badge caiu">Já caiu</span>';
+    }
+
+    if (a.dataRevisao <= hoje()) {
+      badges += '<span class="badge rev">Revisar</span>';
+    }
+if (a.precisaRevisao) {
+  badges += '<span class="badge rev">Revisão extra</span>';
+}
+
+if (a.banca) {
+  badges += '<span class="badge caiu">' + a.banca + '</span>';
+}
+
+if (a.lido) {
+  badges += '<span class="badge">Lido</span>';
+}
+    let div = document.createElement("div");
+    div.className = "artigo";
+   div.innerHTML = `
+  <b>${a.lei} | ${a.materia}</b><br>
+  ${badges}<br><br>
+  ${a.artigo}
+  <br><br>
+  <button onclick="marcarLido(${a.id})">${a.lido ? "Desmarcar lido" : "Marcar lido"}</button>
+  <button onclick="toggleIncidencia(${a.id})">${a.altaIncidencia ? "Tirar incidência" : "Alta incidência"}</button>
+  <button onclick="toggleCaiu(${a.id})">${a.caiuQuestao ? "Desmarcar caiu" : "Marcar que caiu"}</button>
+  <button onclick="definirBanca(${a.id})">Banca</button>
+  <button onclick="togglePrecisaRevisao(${a.id})">${a.precisaRevisao ? "Tirar revisão extra" : "Precisa revisão"}</button>
+  <button onclick="marcarRevisado(${a.id})">Revisado hoje</button>
+`;
+    lista.appendChild(div);
+
+    if (a.dataRevisao <= hoje()) {
+      let rev = document.createElement("div");
+      rev.className = "artigo";
+      rev.innerHTML = `
+        <b>${a.materia}</b><br>
+        ${a.artigo.substring(0, 180)}...
+      `;
+      revisaoDiv.appendChild(rev);
+    }
+  });
+}
+
+function concluirDia() {
+function marcarLido(id) {
+  artigos = artigos.map(function(a) {
+    if (a.id === id) {
+      a.lido = !a.lido;
+    }
+    return a;
+  });
+  salvar();
+  mostrar();
+}
+
+function toggleIncidencia(id) {
+  artigos = artigos.map(function(a) {
+    if (a.id === id) {
+      a.altaIncidencia = !a.altaIncidencia;
+    }
+    return a;
+  });
+  salvar();
+  mostrar();
+}
+
+function toggleCaiu(id) {
+  artigos = artigos.map(function(a) {
+    if (a.id === id) {
+      a.caiuQuestao = !a.caiuQuestao;
+      if (!a.caiuQuestao) {
+        a.banca = "";
+      }
+    }
+    return a;
+  });
+  salvar();
+  mostrar();
+}
+
+function definirBanca(id) {
+  let atual = artigos.find(function(a) { return a.id === id; });
+  if (!atual) return;
+
+  let banca = prompt("Digite a banca:", atual.banca || "");
+  if (banca === null) return;
+
+  artigos = artigos.map(function(a) {
+    if (a.id === id) {
+      a.banca = banca.trim();
+      if (a.banca !== "") {
+        a.caiuQuestao = true;
+      }
+    }
+    return a;
   });
 
+  salvar();
+  mostrar();
+}
+
+function togglePrecisaRevisao(id) {
+  artigos = artigos.map(function(a) {
+    if (a.id === id) {
+      a.precisaRevisao = !a.precisaRevisao;
+    }
+    return a;
+  });
+  salvar();
+  mostrar();
+}
+
+function marcarRevisado(id) {
+  artigos = artigos.map(function(a) {
+    if (a.id === id) {
+      a.nivelRevisao = (a.nivelRevisao || 0) + 1;
+
+      let intervalos = [1, 3, 7, 15, 30];
+      let dias = intervalos[a.nivelRevisao] || 30;
+
+      if (a.altaIncidencia || a.caiuQuestao || a.precisaRevisao) {
+        dias = Math.max(1, Math.floor(dias / 2));
+      }
+
+      a.dataRevisao = somarDias(hoje(), dias);
+    }
+    return a;
+  });
+
+  salvar();
+  mostrar();
+}
+  progresso += metaDia;
+  if (progresso > artigos.length) {
+    progresso = artigos.length;
+  }
+  salvar();
+  mostrar();
 }
 
 mostrar();
-
 </script>
-
 </body>
 </html>
