@@ -32,6 +32,7 @@
       cursor: pointer;
       width: auto;
       padding: 10px 16px;
+      margin-right: 8px;
     }
 
     button:hover {
@@ -65,7 +66,6 @@
     }
 
     .acoes button {
-      margin-right: 8px;
       margin-top: 8px;
     }
 
@@ -128,14 +128,26 @@
         return;
       }
 
-      let partes = texto.split(/(?=Art\.?\s*\d+)/gi);
+      texto = texto.replace(/\r/g, "");
+
+      // quebra o texto toda vez que aparece um novo artigo
+      let partes = texto.split(/\n\s*(?=Art\.?\s*\d+[A-Za-zº°\-]*)/i);
 
       let encontrados = partes
         .map(function(p) { return p.trim(); })
-        .filter(function(p) { return /^Art\.?\s*\d+/i.test(p); });
+        .filter(function(p) {
+          return /^Art\.?\s*\d+[A-Za-zº°\-]*/i.test(p);
+        });
+
+      // plano B, caso a primeira quebra não funcione por causa da formatação
+      if (encontrados.length === 0) {
+        let regex = /Art\.?\s*\d+[A-Za-zº°\-]*[\s\S]*?(?=(\n\s*Art\.?\s*\d+[A-Za-zº°\-]*)|$)/gi;
+        encontrados = texto.match(regex) || [];
+        encontrados = encontrados.map(function(p) { return p.trim(); });
+      }
 
       if (encontrados.length === 0) {
-        alert("Nenhum artigo encontrado. Veja se o texto contém 'Art. 1', 'Art 1' ou algo parecido.");
+        alert("Nenhum artigo encontrado. O texto colado veio fora do padrão.");
         return;
       }
 
@@ -225,6 +237,13 @@
 
         lista.appendChild(div);
       });
+    }
+
+    mostrar();
+  </script>
+
+</body>
+</html>
     }
 
     mostrar();
