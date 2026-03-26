@@ -86,9 +86,14 @@ button {
 
 <div class="card">
 <h2>📅 Hoje</h2>
+  <div class="card">
+<h2>🗓 Próximos dias</h2>
+<div id="proximosDias"></div>
+</div>
 <div id="hoje"></div>
 <button onclick="concluirDia()">Concluir dia</button>
 </div>
+****
 
 <div class="card">
 <h2>🔁 Revisão</h2>
@@ -98,6 +103,26 @@ button {
 <h2>Filtros</h2>
 
 <input id="busca" placeholder="Buscar por texto, lei ou artigo..." oninput="mostrar()"><br><br>
+function montarBlocoDia(indiceBase, titulo) {
+  let bloco = document.createElement("div");
+  bloco.className = "artigo";
+
+  let artigosDia = artigos.slice(indiceBase, indiceBase + metaDia);
+
+  if (artigosDia.length === 0) {
+    bloco.innerHTML = "<b>" + titulo + "</b><br>Nenhum artigo programado.";
+    return bloco;
+  }
+
+  let texto = "<b>" + titulo + "</b><br><br>";
+
+  artigosDia.forEach(function(a) {
+    texto += "<b>" + a.materia + "</b> - " + a.artigo.substring(0, 120) + "...<br><br>";
+  });
+
+  bloco.innerHTML = texto;
+  return bloco;
+}
 
 <select id="filtroMateria" onchange="mostrar()">
   <option value="">Todas as matérias</option>
@@ -242,9 +267,11 @@ function extrair() {
   alert("Artigos extraídos: " + encontrados.length);
 }
 function mostrar() {
-  let lista = document.getElementById("lista");
-  let hojeDiv = document.getElementById("hoje");
-  let revisaoDiv = document.getElementById("revisao");
+ lista.innerHTML = "";
+hojeDiv.innerHTML = "";
+revisaoDiv.innerHTML = "";
+proximosDiasDiv.innerHTML = "";
+  let proximosDiasDiv = document.getElementById("proximosDias");
   let campoDataInicial = document.getElementById("dataInicial");
 let campoMetaDia = document.getElementById("metaDia");
 
@@ -255,7 +282,6 @@ let filtroMateria = document.getElementById("filtroMateria") ? document.getEleme
 let filtroBanca = document.getElementById("filtroBanca") ? document.getElementById("filtroBanca").value : "";
 let filtroCaiu = document.getElementById("filtroCaiu") ? document.getElementById("filtroCaiu").value : "";
 let filtroIncidencia = document.getElementById("filtroIncidencia") ? document.getElementById("filtroIncidencia").value : "";
-  lista.innerHTML = "";
 hojeDiv.innerHTML = "<p><b>Data de hoje:</b> " + hoje() + "</p>";  revisaoDiv.innerHTML = "";
 
 let indiceInicial = progresso;
@@ -269,9 +295,11 @@ if (dataInicial) {
 let artigosHoje = artigos.slice(indiceInicial, indiceInicial + metaDia);
 
   if (artigosHoje.length === 0) {
-    hojeDiv.innerHTML = "<p>Nenhum artigo programado para hoje.</p>";
   } else {
-    artigosHoje.forEach(function(a) {
+ hojeDiv.innerHTML = "<p><b>Data de hoje:</b> " + hoje() + "</p>";
+
+let blocoHoje = montarBlocoDia(indiceInicial, "Hoje");
+hojeDiv.appendChild(blocoHoje);(function(a) {
       let div = document.createElement("div");
       div.className = "artigo";
       div.innerHTML = "<b>" + a.materia + "</b><br>" + a.artigo.substring(0, 180) + "...";
