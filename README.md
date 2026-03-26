@@ -76,7 +76,11 @@ button {
 </select>
 
 <textarea id="textoLei" rows="8" placeholder="Cole a lei aqui"></textarea>
+<label>Data inicial do cronograma</label>
+<input id="dataInicial" type="date" onchange="salvarDataInicial()"><br><br>
 
+<label>Meta de artigos por dia</label>
+<input id="metaDia" type="number" value="20" onchange="salvarMetaDia()"><br><br>
 <button onclick="extrair()">Extrair</button>
 </div>
 
@@ -137,11 +141,14 @@ button {
 <script>
 let artigos = JSON.parse(localStorage.getItem("artigosLeiSecaPro")) || [];
 let progresso = JSON.parse(localStorage.getItem("progressoLeiSecaPro")) || 0;
-let metaDia = 20;
+let metaDia = JSON.parse(localStorage.getItem("metaDiaLeiSecaPro")) || 20;
+let dataInicial = localStorage.getItem("dataInicialLeiSecaPro") || "";
 
 function salvar() {
   localStorage.setItem("artigosLeiSecaPro", JSON.stringify(artigos));
   localStorage.setItem("progressoLeiSecaPro", JSON.stringify(progresso));
+  localStorage.setItem("metaDiaLeiSecaPro", JSON.stringify(metaDia));
+  localStorage.setItem("dataInicialLeiSecaPro", dataInicial);
 }
 
 function hoje() {
@@ -149,6 +156,24 @@ function hoje() {
 }
 
 function somarDias(data, dias) {
+function salvarDataInicial() {
+  dataInicial = document.getElementById("dataInicial").value;
+  salvar();
+  mostrar();
+}
+
+function salvarMetaDia() {
+  metaDia = parseInt(document.getElementById("metaDia").value) || 20;
+  salvar();
+  mostrar();
+}
+
+function diferencaDias(data1, data2) {
+  let d1 = new Date(data1 + "T00:00:00");
+  let d2 = new Date(data2 + "T00:00:00");
+  let ms = d2 - d1;
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
   let d = new Date(data + "T00:00:00");
   d.setDate(d.getDate() + dias);
   return d.toISOString().split("T")[0];
@@ -220,16 +245,28 @@ function mostrar() {
   let lista = document.getElementById("lista");
   let hojeDiv = document.getElementById("hoje");
   let revisaoDiv = document.getElementById("revisao");
+  let campoDataInicial = document.getElementById("dataInicial");
+let campoMetaDia = document.getElementById("metaDia");
+
+if (campoDataInicial) campoDataInicial.value = dataInicial;
+if (campoMetaDia) campoMetaDia.value = metaDia;
 let busca = document.getElementById("busca") ? document.getElementById("busca").value.toLowerCase().trim() : "";
 let filtroMateria = document.getElementById("filtroMateria") ? document.getElementById("filtroMateria").value : "";
 let filtroBanca = document.getElementById("filtroBanca") ? document.getElementById("filtroBanca").value : "";
 let filtroCaiu = document.getElementById("filtroCaiu") ? document.getElementById("filtroCaiu").value : "";
 let filtroIncidencia = document.getElementById("filtroIncidencia") ? document.getElementById("filtroIncidencia").value : "";
   lista.innerHTML = "";
-  hojeDiv.innerHTML = "";
-  revisaoDiv.innerHTML = "";
+hojeDiv.innerHTML = "<p><b>Data de hoje:</b> " + hoje() + "</p>";  revisaoDiv.innerHTML = "";
 
-  let artigosHoje = artigos.slice(progresso, progresso + metaDia);
+let indiceInicial = progresso;
+
+if (dataInicial) {
+  let diasPassados = diferencaDias(dataInicial, hoje());
+  if (diasPassados < 0) diasPassados = 0;
+  indiceInicial = diasPassados * metaDia;
+}
+
+let artigosHoje = artigos.slice(indiceInicial, indiceInicial + metaDia);
 
   if (artigosHoje.length === 0) {
     hojeDiv.innerHTML = "<p>Nenhum artigo programado para hoje.</p>";
@@ -308,13 +345,10 @@ if (a.lido) {
 }
 
 function concluirDia() {
-function marcarLido(id) {
-  artigos = artigos.map(function(a) {
-    if (a.id === id) {
-      a.lido = !a.lido;
-    }
-    return a;
-  });
+  progresso += metaDia;
+  if (progresso > artigos.length) {
+    progresso = artigos.length;
+  }
   salvar();
   mostrar();
 }
