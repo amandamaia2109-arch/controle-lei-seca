@@ -16,6 +16,36 @@
       color: #1f3c88;
     }
 
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      background: white;
+      border: 1px solid #cfd8ea;
+      padding: 10px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #1f3c88;
+    }
+
+    .tab-btn.ativa {
+      background: #1f3c88;
+      color: white;
+    }
+
+    .aba {
+      display: none;
+    }
+
+    .aba.ativa {
+      display: block;
+    }
+
     .card {
       background: white;
       padding: 15px;
@@ -80,12 +110,6 @@
     .rev { background: #fff3cd; color: #8a6500; }
     .lidoBadge { background: #e8f5e9; color: #136f2d; }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
     .filtros {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -98,26 +122,28 @@
       margin-top: -8px;
       margin-bottom: 10px;
     }
-
-    @media (max-width: 900px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 <body>
 
   <h1>📚 Controle Lei Seca PRO</h1>
 
-  <div class="card">
-    <h2>Adicionar Lei</h2>
+  <div class="tabs">
+    <button class="tab-btn ativa" onclick="abrirAba('abaLeis', this)">Leis</button>
+    <button class="tab-btn" onclick="abrirAba('abaCronograma', this)">Cronograma</button>
+    <button class="tab-btn" onclick="abrirAba('abaRevisao', this)">Revisão</button>
+    <button class="tab-btn" onclick="abrirAba('abaArtigos', this)">Artigos</button>
+  </div>
 
-    <label>Nome da lei</label>
-    <input id="nomeLei" placeholder="Ex.: Código Penal">
+  <div id="abaLeis" class="aba ativa">
+    <div class="card">
+      <h2>Adicionar Lei</h2>
 
-    <label>Matéria</label>
-    <select id="materia">
+      <label>Nome da lei</label>
+      <input id="nomeLei" placeholder="Ex.: Código Penal">
+
+      <label>Matéria</label>
+      <select id="materia">
       <option>Direito Penal</option>
       <option>Direito Civil</option>
       <option>Processual Penal</option>
@@ -125,6 +151,10 @@
       <option>Constitucional</option>
       <option>Administrativo</option>
       <option>Processo Coletivo</option>
+      <option>Tributário</option>
+      <option>Improbidade</option>
+      <option>Empresarial</option>
+      <option>Consumidor</option>
     </select>
 
     <label>Texto da lei</label>
