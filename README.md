@@ -90,7 +90,46 @@ button {
 <h2>🔁 Revisão</h2>
 <div id="revisao"></div>
 </div>
+<div class="card">
+<h2>Filtros</h2>
 
+<input id="busca" placeholder="Buscar por texto, lei ou artigo..." oninput="mostrar()"><br><br>
+
+<select id="filtroMateria" onchange="mostrar()">
+  <option value="">Todas as matérias</option>
+  <option>Direito Penal</option>
+  <option>Direito Civil</option>
+  <option>Processual Penal</option>
+  <option>Processual Civil</option>
+  <option>Constitucional</option>
+  <option>Administrativo</option>
+  <option>Processo Coletivo</option>
+</select><br><br>
+
+<select id="filtroBanca" onchange="mostrar()">
+  <option value="">Todas as bancas</option>
+  <option>FGV</option>
+  <option>Cebraspe</option>
+  <option>FCC</option>
+  <option>Vunesp</option>
+  <option>IBFC</option>
+  <option>Consulplan</option>
+  <option>AOCP</option>
+  <option>Outra</option>
+</select><br><br>
+
+<select id="filtroCaiu" onchange="mostrar()">
+  <option value="">Caiu ou não</option>
+  <option value="sim">Já caiu</option>
+  <option value="nao">Não caiu</option>
+</select><br><br>
+
+<select id="filtroIncidencia" onchange="mostrar()">
+  <option value="">Alta incidência?</option>
+  <option value="sim">Sim</option>
+  <option value="nao">Não</option>
+</select>
+</div>
 <div class="card">
 <h2>📚 Artigos</h2>
 <div id="lista"></div>
@@ -181,7 +220,11 @@ function mostrar() {
   let lista = document.getElementById("lista");
   let hojeDiv = document.getElementById("hoje");
   let revisaoDiv = document.getElementById("revisao");
-
+let busca = document.getElementById("busca") ? document.getElementById("busca").value.toLowerCase().trim() : "";
+let filtroMateria = document.getElementById("filtroMateria") ? document.getElementById("filtroMateria").value : "";
+let filtroBanca = document.getElementById("filtroBanca") ? document.getElementById("filtroBanca").value : "";
+let filtroCaiu = document.getElementById("filtroCaiu") ? document.getElementById("filtroCaiu").value : "";
+let filtroIncidencia = document.getElementById("filtroIncidencia") ? document.getElementById("filtroIncidencia").value : "";
   lista.innerHTML = "";
   hojeDiv.innerHTML = "";
   revisaoDiv.innerHTML = "";
@@ -198,9 +241,21 @@ function mostrar() {
       hojeDiv.appendChild(div);
     });
   }
+let artigosFiltrados = artigos.filter(function(a) {
+  let textoCompleto = (a.lei + " " + a.materia + " " + a.artigo + " " + (a.banca || "")).toLowerCase();
 
-  artigos.forEach(function(a) {
-    let badges = "";
+  if (busca && !textoCompleto.includes(busca)) return false;
+  if (filtroMateria && a.materia !== filtroMateria) return false;
+  if (filtroBanca && a.banca !== filtroBanca) return false;
+  if (filtroCaiu === "sim" && !a.caiuQuestao) return false;
+  if (filtroCaiu === "nao" && a.caiuQuestao) return false;
+  if (filtroIncidencia === "sim" && !a.altaIncidencia) return false;
+  if (filtroIncidencia === "nao" && a.altaIncidencia) return false;
+
+  return true;
+});
+ artigosFiltrados.forEach(function(a) {
+ let badges = "";
 
     if (a.altaIncidencia) {
       badges += '<span class="badge inc">Alta incidência</span>';
